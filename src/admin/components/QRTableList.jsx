@@ -7,6 +7,16 @@ import { motion } from 'framer-motion'
 
 export const QRTableList = ({ qrCodes, onDelete }) => {
   const downloadQR = (code) => {
+    // If QR code data is from backend (base64 image), download directly
+    if (code.qrCodeData) {
+      const downloadLink = document.createElement('a')
+      downloadLink.download = `qr-${code.name || code.tableNumber || 'global'}.png`
+      downloadLink.href = code.qrCodeData
+      downloadLink.click()
+      return
+    }
+    
+    // Otherwise, convert SVG to image
     const svg = document.getElementById(`qr-${code.id}`)
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement('canvas')
@@ -40,28 +50,43 @@ export const QRTableList = ({ qrCodes, onDelete }) => {
           <Card className="text-center">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                {code.tableNumber ? (
-                  <Badge variant="info">Table {code.tableNumber}</Badge>
-                ) : (
-                  <Badge variant="primary">Global QR</Badge>
-                )}
+                <div className="flex flex-col items-start gap-1">
+                  {code.tableNumber ? (
+                    <Badge variant="info">Table {code.tableNumber}</Badge>
+                  ) : (
+                    <Badge variant="primary">Global QR</Badge>
+                  )}
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {code.scans || 0} scans
+                  </span>
+                </div>
                 <button
                   onClick={() => onDelete(code.id)}
-                  className="text-red-500 hover:text-red-700 transition-colors"
+                  className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
+                  title="Delete QR Code"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="flex justify-center mb-4">
-                <div className="p-4 bg-white border-2 border-gray-200 rounded-lg">
-                  <QRCodeSVG
-                    id={`qr-${code.id}`}
-                    value={code.url}
-                    size={150}
-                    level="H"
-                    includeMargin
-                  />
+                <div className="p-4 bg-white border-2 border-gray-200 dark:border-gray-600 rounded-lg">
+                  {code.qrCodeData ? (
+                    <img
+                      id={`qr-${code.id}`}
+                      src={code.qrCodeData}
+                      alt={`QR Code for ${code.name}`}
+                      className="w-[150px] h-[150px]"
+                    />
+                  ) : (
+                    <QRCodeSVG
+                      id={`qr-${code.id}`}
+                      value={code.url}
+                      size={150}
+                      level="H"
+                      includeMargin
+                    />
+                  )}
                 </div>
               </div>
 

@@ -24,10 +24,12 @@ export const QRGenerator = () => {
 
   const fetchQRCodes = async () => {
     try {
-      const response = await qrAPI.getQRCodes()
-      setQrCodes(response.data)
+      const response = await qrAPI.getAll()
+      setQrCodes(response.data.qrCodes || [])
     } catch (error) {
+      console.error('QR API error:', error)
       toast.error('Failed to load QR codes')
+      setQrCodes([])
     } finally {
       setLoading(false)
     }
@@ -36,12 +38,16 @@ export const QRGenerator = () => {
   const handleGenerateGlobal = async () => {
     setGenerating(true)
     try {
-      await qrAPI.generateGlobal()
+      const response = await qrAPI.generate({
+        name: 'Global Menu QR',
+        type: 'global'
+      })
       toast.success('Global QR code generated!')
       fetchQRCodes()
       setShowModal(false)
     } catch (error) {
-      toast.error('Failed to generate QR code')
+      console.error('Generate QR error:', error)
+      toast.error(error.response?.data?.message || 'Failed to generate QR code')
     } finally {
       setGenerating(false)
     }
@@ -55,13 +61,18 @@ export const QRGenerator = () => {
 
     setGenerating(true)
     try {
-      await qrAPI.generateTable(tableNumber)
+      const response = await qrAPI.generate({
+        name: `Table ${tableNumber} QR`,
+        type: 'table',
+        tableNumber: tableNumber
+      })
       toast.success(`QR code for Table ${tableNumber} generated!`)
       setTableNumber('')
       fetchQRCodes()
       setShowModal(false)
     } catch (error) {
-      toast.error('Failed to generate QR code')
+      console.error('Generate QR error:', error)
+      toast.error(error.response?.data?.message || 'Failed to generate QR code')
     } finally {
       setGenerating(false)
     }
@@ -73,11 +84,12 @@ export const QRGenerator = () => {
 
   const confirmDelete = async () => {
     try {
-      await qrAPI.deleteQRCode(deleteModal.qrId)
+      await qrAPI.delete(deleteModal.qrId)
       toast.success('QR code deleted')
       fetchQRCodes()
     } catch (error) {
-      toast.error('Failed to delete QR code')
+      console.error('Delete QR error:', error)
+      toast.error(error.response?.data?.message || 'Failed to delete QR code')
     } finally {
       setDeleteModal({ isOpen: false, qrId: null })
     }
@@ -169,19 +181,19 @@ export const QRGenerator = () => {
       >
         {modalType === 'global' ? (
           <div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               A global QR code can be scanned by customers at any table. The menu will be displayed
               without a specific table number.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 💡 <strong>Tip:</strong> Use global QR codes for takeaway menus or general display.
               </p>
             </div>
           </div>
         ) : (
           <div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Generate a QR code for a specific table. When scanned, the table number will be
               displayed and included in orders.
             </p>

@@ -2,10 +2,10 @@ import api from './axios'
 
 // Auth endpoints
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get('/auth/profile'),
+  login: (credentials) => api.post('/auth/login', credentials),
+  getMe: () => api.get('/auth/me'),
+  updateProfile: (profileData) => api.put('/auth/profile', profileData),
 }
 
 // Menu endpoints
@@ -34,10 +34,18 @@ export const ordersAPI = {
 
 // QR Code endpoints
 export const qrAPI = {
-  generateGlobal: () => api.post('/qr/global'),
-  generateTable: (tableNumber) => api.post('/qr/table', { tableNumber }),
-  getQRCodes: () => api.get('/qr'),
-  deleteQRCode: (qrId) => api.delete(`/qr/${qrId}`),
+  generate: (qrData) => api.post('/qr/generate', qrData),
+  getAll: () => api.get('/qr'),
+  getOne: (qrId) => api.get(`/qr/${qrId}`),
+  delete: (qrId) => api.delete(`/qr/${qrId}`),
+  trackScan: (token) => api.post(`/qr/scan/${token}`),
+}
+
+// Dashboard endpoints
+export const dashboardAPI = {
+  getStats: () => api.get('/dashboard/stats'),
+  getActivity: () => api.get('/dashboard/activity'),
+  getQRSummary: () => api.get('/dashboard/qr-summary'),
 }
 
 // Analytics endpoints
@@ -52,5 +60,6 @@ export default {
   menu: menuAPI,
   orders: ordersAPI,
   qr: qrAPI,
+  dashboard: dashboardAPI,
   analytics: analyticsAPI,
 }

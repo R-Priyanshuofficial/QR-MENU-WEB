@@ -190,31 +190,31 @@ export const Cart = () => {
         >
           <Card className="sticky top-20">
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Bill Summary
               </h2>
 
               <div className="space-y-3 mb-4">
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
                   <span>Subtotal</span>
                   <span>{formatCurrency(getTotalAmount())}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
                   <span>Taxes & Fees</span>
                   <span>Included</span>
                 </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="flex justify-between text-lg font-bold text-gray-900">
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-gray-100">
                     <span>Total</span>
-                    <span className="text-primary-600">
+                    <span className="text-primary-600 dark:text-primary-400">
                       {formatCurrency(getTotalAmount())}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
                   💰 <strong>Cash Payment</strong>
                   <br />
                   Pay when your order is ready

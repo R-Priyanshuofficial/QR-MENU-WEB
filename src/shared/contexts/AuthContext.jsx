@@ -30,9 +30,9 @@ export const AuthProvider = ({ children }) => {
           setUser(mockUser)
           setIsAuthenticated(true)
         } else {
-          // Try to fetch from actual API
-          const response = await authAPI.getProfile()
-          setUser(response.data)
+          // Fetch user from actual API
+          const response = await authAPI.getMe()
+          setUser(response.data.user)
           setIsAuthenticated(true)
         }
       }
@@ -46,36 +46,62 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      // Mock authentication for demo (no backend required)
-      if (credentials.email === 'demo@example.com' && credentials.password === 'password123') {
-        const mockUser = {
-          id: '1',
-          name: 'Demo Admin',
-          email: 'demo@example.com',
-          restaurantName: 'Demo Restaurant',
-        }
-        const mockToken = 'mock-jwt-token-' + Date.now()
-        
-        localStorage.setItem('auth_token', mockToken)
-        setUser(mockUser)
-        setIsAuthenticated(true)
-        toast.success('Login successful!')
-        return { success: true }
+      // Call actual backend API
+      const response = await authAPI.login(credentials)
+      
+      // Store token and user data
+      localStorage.setItem('auth_token', response.data.token)
+      
+      // Store remember me preference
+      if (credentials.rememberMe) {
+        localStorage.setItem('remember_me', 'true')
+        localStorage.setItem('user_email', credentials.email)
+        localStorage.setItem('user_password', credentials.password)
+      } else {
+        localStorage.removeItem('remember_me')
+        localStorage.removeItem('user_email')
+        localStorage.removeItem('user_password')
       }
       
-      // Try actual API call (will fail if no backend)
-      const response = await authAPI.login(credentials)
-      localStorage.setItem('auth_token', response.token)
-      setUser(response.user)
+      setUser(response.data.user)
       setIsAuthenticated(true)
       toast.success('Login successful!')
       return { success: true }
     } catch (error) {
-      // Show helpful error message
+      // Handle errors with specific messages
       if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        toast.error('No backend server running. Use demo credentials: demo@example.com / password123')
+        // Backend not running - use mock for demo
+        if (credentials.email === 'demo@example.com' && credentials.password === 'password123') {
+          const mockUser = {
+            id: '1',
+            name: 'Demo Admin',
+            email: 'demo@example.com',
+            restaurantName: 'Demo Restaurant',
+          }
+          const mockToken = 'mock-jwt-token-' + Date.now()
+          
+          localStorage.setItem('auth_token', mockToken)
+          
+          // Store remember me preference
+          if (credentials.rememberMe) {
+            localStorage.setItem('remember_me', 'true')
+            localStorage.setItem('user_email', credentials.email)
+            localStorage.setItem('user_password', credentials.password)
+          } else {
+            localStorage.removeItem('remember_me')
+            localStorage.removeItem('user_email')
+            localStorage.removeItem('user_password')
+          }
+          
+          setUser(mockUser)
+          setIsAuthenticated(true)
+          toast.success('Login successful! (Demo mode - backend not connected)')
+          return { success: true }
+        }
+        toast.error('Backend server not running. Please start the API server.')
       } else {
-        toast.error(error.response?.data?.message || 'Invalid credentials')
+        // API returned an error
+        toast.error(error.response?.data?.message || 'Invalid email or password')
       }
       return { success: false, error }
     }
@@ -83,37 +109,39 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      // Mock registration for demo
-      const mockUser = {
-        id: Date.now().toString(),
-        name: userData.name,
-        email: userData.email,
-        restaurantName: userData.restaurantName,
-      }
-      const mockToken = 'mock-jwt-token-' + Date.now()
+      // Call actual backend API
+      const response = await authAPI.register(userData)
       
-      localStorage.setItem('auth_token', mockToken)
-      setUser(mockUser)
-      setIsAuthenticated(true)
-      toast.success('Registration successful! (Mock mode - no backend)')
+      // Don't store token or login user after registration
+      // User should login manually after registration
+      toast.success('Registration successful! Please login to continue.')
       return { success: true }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed')
+      // Handle errors with specific messages
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        toast.error('Backend server not running. Please start the API server.')
+      } else {
+        // API returned an error
+        toast.error(error.response?.data?.message || 'Registration failed')
+      }
       return { success: false, error }
     }
   }
 
-  const logout = async () => {
-    try {
-      await authAPI.logout()
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      localStorage.removeItem('auth_token')
-      setUser(null)
-      setIsAuthenticated(false)
-      toast.success('Logged out successfully')
+  const logout = () => {
+    // Clear local storage and state
+    localStorage.removeItem('auth_token')
+    
+    // Only clear remember me data if remember me is not enabled
+    const rememberMe = localStorage.getItem('remember_me')
+    if (!rememberMe) {
+      localStorage.removeItem('user_email')
+      localStorage.removeItem('user_password')
     }
+    
+    setUser(null)
+    setIsAuthenticated(false)
+    toast.success('Logged out successfully')
   }
 
   const value = {

@@ -122,7 +122,7 @@ export const ConfirmModal = ({
         </>
       }
     >
-      <p className="text-gray-600">{message}</p>
+      <p className="text-gray-600 dark:text-gray-300">{message}</p>
     </Modal>
   )
 }

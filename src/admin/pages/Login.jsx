@@ -13,9 +13,16 @@ export const Login = () => {
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  
+  // Check if remember me is enabled
+  const savedEmail = localStorage.getItem('user_email')
+  const savedPassword = localStorage.getItem('user_password')
+  const savedRememberMe = localStorage.getItem('remember_me') === 'true'
+  
+  const [rememberMe, setRememberMe] = useState(savedRememberMe)
   const [formData, setFormData] = useState({
-    email: 'demo@example.com',
-    password: 'password123',
+    email: savedEmail || '',
+    password: savedPassword || '',
     name: '',
     restaurantName: '',
     phone: '',
@@ -32,14 +39,26 @@ export const Login = () => {
 
     try {
       if (isLoginMode) {
-        const result = await login({ email: formData.email, password: formData.password })
+        const result = await login({ 
+          email: formData.email, 
+          password: formData.password,
+          rememberMe 
+        })
         if (result.success) {
           navigate('/owner/dashboard')
         }
       } else {
         const result = await register(formData)
         if (result.success) {
-          navigate('/owner/dashboard')
+          // Redirect to login page after registration
+          setIsLoginMode(true)
+          setFormData({
+            email: formData.email, // Keep email for convenience
+            password: '',
+            name: '',
+            restaurantName: '',
+            phone: '',
+          })
         }
       }
     } finally {
@@ -163,31 +182,40 @@ export const Login = () => {
                 required
               />
 
+              {isLoginMode && (
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Remember me</span>
+                  </label>
+                  <a
+                    href="#"
+                    className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+              )}
+
               <Button type="submit" className="w-full" size="lg" loading={loading}>
                 {isLoginMode ? 'Login' : 'Create Account'}
               </Button>
             </form>
-
-            {isLoginMode && (
-              <div className="mt-6 text-center">
-                <button className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                  Forgot password?
-                </button>
-              </div>
-            )}
           </div>
         </Card>
-
         {/* Demo Note */}
         <div className="mt-6 text-center space-y-2">
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              🎯 Demo Mode (No Backend Required)
+              💡 Testing Credentials
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-300">
-              <strong>Email:</strong> demo@example.com
-              <br />
-              <strong>Password:</strong> password123
+              For testing: Email: <span className="font-mono">demo@example.com</span> | Password: <span className="font-mono">password123</span>
             </p>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">

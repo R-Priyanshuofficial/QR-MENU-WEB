@@ -12,7 +12,7 @@ import { Card, CardContent } from '@shared/components/Card'
 import { Button } from '@shared/components/Button'
 import { PageLoader } from '@shared/components/Spinner'
 import { formatCurrency } from '@shared/utils/formatters'
-import { analyticsAPI, ordersAPI } from '@shared/api/endpoints'
+import { dashboardAPI } from '@shared/api/endpoints'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
@@ -28,14 +28,29 @@ export const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, ordersRes] = await Promise.all([
-        analyticsAPI.getStats('today'),
-        ordersAPI.getOwnerOrders('pending'),
-      ])
-      setStats(statsRes.data)
-      setRecentOrders(ordersRes.data.slice(0, 5))
+      // Fetch dashboard stats from backend API
+      const statsRes = await dashboardAPI.getStats()
+      
+      // Extract stats from response
+      setStats(statsRes.data.stats)
+      
+      // For now, mock recent orders (will be implemented when orders API is ready)
+      setRecentOrders([])
     } catch (error) {
-      toast.error('Failed to load dashboard data')
+      console.error('Dashboard API error:', error)
+      
+      // Fallback to mock data if backend not available
+      setStats({
+        totalQRCodes: 0,
+        activeQRCodes: 0,
+        totalScans: 0,
+        recentScans: 0,
+        scanGrowth: '0%',
+        todayOrders: 0,
+        todayRevenue: 0,
+        totalCustomers: 0,
+      })
+      toast.error('Backend not connected. Showing placeholder data.')
     } finally {
       setLoading(false)
     }
@@ -45,32 +60,32 @@ export const Dashboard = () => {
 
   const statCards = [
     {
-      title: 'Total Orders Today',
-      value: stats?.todayOrders || 0,
-      icon: ShoppingBag,
-      color: 'bg-blue-500',
-      change: '+12%',
-    },
-    {
-      title: 'Revenue Today',
-      value: formatCurrency(stats?.todayRevenue || 0),
-      icon: TrendingUp,
-      color: 'bg-green-500',
-      change: '+8%',
-    },
-    {
-      title: 'Active QR Codes',
-      value: stats?.activeQRCodes || 0,
+      title: 'Total QR Codes',
+      value: stats?.totalQRCodes || 0,
       icon: QrCode,
       color: 'bg-purple-500',
-      change: '8 codes',
+      change: `${stats?.activeQRCodes || 0} active`,
     },
     {
-      title: 'Total Customers',
-      value: stats?.totalCustomers || 0,
+      title: 'Total Scans',
+      value: stats?.totalScans || 0,
+      icon: TrendingUp,
+      color: 'bg-blue-500',
+      change: stats?.scanGrowth || '0%',
+    },
+    {
+      title: 'Recent Scans',
+      value: stats?.recentScans || 0,
+      icon: ShoppingBag,
+      color: 'bg-green-500',
+      change: 'Last 7 days',
+    },
+    {
+      title: 'Total Orders',
+      value: stats?.todayOrders || 0,
       icon: Users,
       color: 'bg-orange-500',
-      change: '+24',
+      change: 'Coming soon',
     },
   ]
 
