@@ -4,7 +4,7 @@ import { OrderCard } from '../components/OrderCard'
 import { PageLoader } from '@shared/components/Spinner'
 import { ConfirmModal } from '@shared/components/Modal'
 import { ordersAPI } from '@shared/api/endpoints'
-import { useWebSocket } from '@shared/hooks/useWebSocket'
+import { useSocket } from '@shared/contexts/SocketContext'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -13,28 +13,29 @@ export const Orders = () => {
   const [orders, setOrders] = useState([])
   const [filter, setFilter] = useState('pending')
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null, action: null })
-
-  // WebSocket for real-time order updates
-  const { lastMessage } = useWebSocket(
-    import.meta.env.VITE_WS_URL || 'ws://localhost:5000',
-    {
-      onMessage: (data) => {
-        if (data.type === 'NEW_ORDER') {
-          setOrders((prev) => [data.order, ...prev])
-          toast.success('🔔 New order received!', {
-            duration: 5000,
-            icon: '🛎️',
-          })
-          // Play notification sound
-          new Audio('/notification.mp3').play().catch(() => {})
-        }
-      },
-    }
-  )
+  const { socket, connected } = useSocket()
 
   useEffect(() => {
     fetchOrders()
   }, [filter])
+
+  useEffect(() => {
+    // Listen for new order notifications
+    if (socket && connected) {
+      const handleNotification = (notification) => {
+        if (notification.type === 'new_order') {
+          // Refresh orders when new order arrives
+          fetchOrders()
+        }
+      }
+
+      socket.on('notification', handleNotification)
+
+      return () => {
+        socket.off('notification', handleNotification)
+      }
+    }
+  }, [socket, connected])
 
   const fetchOrders = async () => {
     try {
@@ -63,7 +64,10 @@ export const Orders = () => {
         toast.success('Order marked as ready! Customer notified.')
       } else if (action === 'completed') {
         await ordersAPI.markOrderCompleted(orderId)
-        toast.success('Order completed!')
+        toast.success('Order completed! Added to billing.', {
+          duration: 4000,
+          icon: '🧾'
+        })
       }
       fetchOrders()
     } catch (error) {
@@ -93,9 +97,11 @@ export const Orders = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Orders</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage incoming orders in real-time</p>
         </div>
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+        <div className={`flex items-center gap-2 ${connected ? 'text-green-600' : 'text-gray-400'}`}>
           <Bell className="w-5 h-5" />
-          <span className="text-xs sm:text-sm">Real-time updates active</span>
+          <span className="text-xs sm:text-sm">
+            {connected ? 'Real-time updates active' : 'Connecting...'}
+          </span>
         </div>
       </motion.div>
 

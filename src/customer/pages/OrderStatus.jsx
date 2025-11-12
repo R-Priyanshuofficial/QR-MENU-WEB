@@ -7,9 +7,10 @@ import { Button } from '@shared/components/Button'
 import { PageLoader } from '@shared/components/Spinner'
 import { formatCurrency, formatDateTime } from '@shared/utils/formatters'
 import { ordersAPI } from '@shared/api/endpoints'
-import { useWebSocket } from '@shared/hooks/useWebSocket'
+import { useSocket } from '@shared/contexts/SocketContext'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
+import { registerPushSubscription } from '@shared/utils/pushNotifications'
 
 const ORDER_STATUS = {
   pending: { label: 'Pending', icon: Clock, variant: 'warning', color: 'text-yellow-600' },
@@ -23,24 +24,36 @@ export const OrderStatus = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [order, setOrder] = useState(null)
-
-  const { lastMessage } = useWebSocket(
-    import.meta.env.VITE_WS_URL || 'ws://localhost:5000',
-    {
-      onMessage: (data) => {
-        if (data.type === 'ORDER_UPDATE' && data.orderId === orderId) {
-          setOrder((prev) => ({ ...prev, status: data.status }))
-          if (data.status === 'ready') {
-            toast.success('🎉 Your order is ready!')
-          }
-        }
-      },
-    }
-  )
+  const { socket, joinOrderRoom } = useSocket()
 
   useEffect(() => {
     fetchOrder()
   }, [orderId])
+
+  useEffect(() => {
+    // Join order room for real-time updates
+    if (order && socket) {
+      joinOrderRoom(orderId, order.customerPhone)
+
+      // Ensure web push subscription for this customer's phone
+      if (order.customerPhone) {
+        registerPushSubscription({ phone: order.customerPhone }).catch(() => {})
+      }
+
+      // Listen for order status updates
+      const handleNotification = (notification) => {
+        if (notification.data?.orderId === orderId) {
+          setOrder((prev) => ({ ...prev, status: notification.data.status }))
+        }
+      }
+
+      socket.on('notification', handleNotification)
+
+      return () => {
+        socket.off('notification', handleNotification)
+      }
+    }
+  }, [order, socket, orderId, joinOrderRoom])
 
   const fetchOrder = async () => {
     try {

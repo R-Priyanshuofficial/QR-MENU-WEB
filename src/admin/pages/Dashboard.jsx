@@ -12,7 +12,8 @@ import { Card, CardContent } from '@shared/components/Card'
 import { Button } from '@shared/components/Button'
 import { PageLoader } from '@shared/components/Spinner'
 import { formatCurrency } from '@shared/utils/formatters'
-import { dashboardAPI } from '@shared/api/endpoints'
+import { dashboardAPI, ordersAPI } from '@shared/api/endpoints'
+import { NotificationPermission } from '../components/NotificationPermission'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
@@ -34,8 +35,14 @@ export const Dashboard = () => {
       // Extract stats from response
       setStats(statsRes.data.stats)
       
-      // For now, mock recent orders (will be implemented when orders API is ready)
-      setRecentOrders([])
+      // Fetch pending orders
+      try {
+        const ordersRes = await ordersAPI.getOwnerOrders('pending')
+        setRecentOrders(ordersRes.data.slice(0, 5)) // Show only first 5
+      } catch (ordersError) {
+        console.error('Failed to fetch orders:', ordersError)
+        setRecentOrders([])
+      }
     } catch (error) {
       console.error('Dashboard API error:', error)
       
@@ -46,9 +53,11 @@ export const Dashboard = () => {
         totalScans: 0,
         recentScans: 0,
         scanGrowth: '0%',
+        totalOrders: 0,
         todayOrders: 0,
+        pendingOrders: 0,
         todayRevenue: 0,
-        totalCustomers: 0,
+        totalRevenue: 0,
       })
       toast.error('Backend not connected. Showing placeholder data.')
     } finally {
@@ -82,10 +91,10 @@ export const Dashboard = () => {
     },
     {
       title: 'Total Orders',
-      value: stats?.todayOrders || 0,
+      value: stats?.totalOrders || 0,
       icon: Users,
       color: 'bg-orange-500',
-      change: 'Coming soon',
+      change: `${stats?.pendingOrders || 0} pending`,
     },
   ]
 
@@ -98,6 +107,15 @@ export const Dashboard = () => {
       >
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Dashboard</h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Welcome back! Here's what's happening today.</p>
+      </motion.div>
+
+      {/* Notification Permission Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <NotificationPermission />
       </motion.div>
 
       {/* Stats Grid */}

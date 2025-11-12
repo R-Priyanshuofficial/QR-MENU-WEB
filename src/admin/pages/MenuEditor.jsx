@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit, Trash2, Upload, FileImage, FileText, Check, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Upload, FileImage, FileText, Check, X, Camera } from 'lucide-react'
 import { Button } from '@shared/components/Button'
 import { Input, TextArea } from '@shared/components/Input'
 import { Card } from '@shared/components/Card'
@@ -17,6 +17,8 @@ export const MenuEditor = () => {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, itemId: null })
+  const [deleteAllModal, setDeleteAllModal] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
   const [formData, setFormData] = useState({ name: '', description: '', price: '', category: '', image: '' })
   const [uploading, setUploading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState(null)
@@ -24,6 +26,7 @@ export const MenuEditor = () => {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [savingItems, setSavingItems] = useState(false)
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   useEffect(() => {
     fetchMenu()
@@ -33,7 +36,12 @@ export const MenuEditor = () => {
     try {
       const response = await menuAPI.getOwnerMenu()
       console.log('Menu response:', response.data)
-      setItems(response.data.items || [])
+      const items = response.data.items || []
+      // Log currency values for debugging
+      items.forEach((item, i) => {
+        console.log(`Item ${i + 1}: ${item.name} - Currency: ${item.currency || 'NOT SET'}`);
+      });
+      setItems(items)
     } catch (error) {
       console.error('Menu fetch error:', error)
       toast.error(error.response?.data?.message || 'Failed to load menu')
@@ -62,7 +70,7 @@ export const MenuEditor = () => {
       formData.append('menuFile', uploadedFile)
       
       const response = await menuAPI.uploadMenu(formData)
-      const items = response.data.items || []
+      const items = response.data?.items || []
       
       if (items.length > 0) {
         setExtractedItems(items)
@@ -153,6 +161,27 @@ export const MenuEditor = () => {
     }
   }
 
+  const confirmDeleteAll = async () => {
+    setDeletingAll(true)
+    try {
+      const response = await menuAPI.deleteAllItems()
+      const deletedCount = response.data?.deletedCount || items.length
+      
+      if (deletedCount === 0) {
+        toast.error('No items to delete')
+      } else {
+        toast.success(`Successfully deleted ${deletedCount} menu items`)
+        setItems([])
+      }
+    } catch (error) {
+      console.error('Delete all error:', error)
+      toast.error(error.response?.data?.message || 'Failed to delete all items. Please try again.')
+    } finally {
+      setDeletingAll(false)
+      setDeleteAllModal(false)
+    }
+  }
+
   if (loading) return <PageLoader message="Loading menu..." />
 
   const categories = [...new Set(items.map(i => i.category))]
@@ -164,7 +193,16 @@ export const MenuEditor = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Menu Editor</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage your menu items</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {items.length > 0 && (
+            <Button 
+              variant="danger" 
+              onClick={() => setDeleteAllModal(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete All
+            </Button>
+          )}
           <Button 
             variant="outline" 
             leftIcon={<Upload className="w-5 h-5" />} 
@@ -208,7 +246,7 @@ export const MenuEditor = () => {
                     {item.image && <img src={item.image} alt={item.name} className="w-full h-32 object-cover rounded-lg mb-3" />}
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">{item.name}</h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">{item.description}</p>
-                    <p className="text-lg font-bold text-primary-600 dark:text-primary-400 mb-3">{formatCurrency(item.price)}</p>
+                    <p className="text-lg font-bold text-primary-600 dark:text-primary-400 mb-3">{formatCurrency(item.price, item.currency)}</p>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => { setEditingItem(item); setFormData(item); setShowModal(true); }}>
                         <Edit className="w-4 h-4" />
@@ -239,11 +277,35 @@ export const MenuEditor = () => {
       <ConfirmModal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, itemId: null })}
         onConfirm={confirmDelete} title="Delete Item?" message="This item will be removed from your menu." confirmText="Delete" variant="danger" />
 
+      {/* Delete All Confirmation Modal */}
+      <ConfirmModal 
+        isOpen={deleteAllModal} 
+        onClose={() => setDeleteAllModal(false)}
+        onConfirm={confirmDeleteAll}
+        title="⚠️ Delete ALL Menu Items?"
+        message={
+          <div className="space-y-3">
+            <p className="font-semibold text-red-600 dark:text-red-400">
+              This will permanently delete all {items.length} menu items!
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              This action cannot be undone. All your menu items, including their prices, descriptions, and categories will be permanently removed.
+            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Are you absolutely sure you want to continue?
+            </p>
+          </div>
+        }
+        confirmText={deletingAll ? "Deleting..." : "Yes, Delete All"}
+        variant="danger"
+        loading={deletingAll}
+      />
+
       {/* Upload Menu Modal */}
       <Modal 
         isOpen={showUploadModal} 
         onClose={() => { setShowUploadModal(false); setUploadedFile(null); }} 
-        title="Upload Menu (OCR)"
+        title="Upload Menu (AI Vision)"
         size="lg"
         footer={
           <>
@@ -257,24 +319,30 @@ export const MenuEditor = () => {
         <div className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              📸 <strong>Auto-extract menu items:</strong><br />
-              Upload a photo or PDF of your menu. Our OCR will automatically detect item names, prices, and descriptions.
+              🤖 <strong>AI-Powered Menu Extraction:</strong><br />
+              Upload a photo or PDF of your menu. Our AI Vision will analyze the image directly and extract item names, prices, descriptions, and categories with 95%+ accuracy!
             </p>
           </div>
 
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors"
-          >
-            <input 
-              ref={fileInputRef}
-              type="file" 
-              accept="image/*,application/pdf" 
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            
-            {uploadedFile ? (
+          {/* Hidden file inputs */}
+          <input 
+            ref={fileInputRef}
+            type="file" 
+            accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.heic,.heif,.pdf,image/*,application/pdf" 
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <input 
+            ref={cameraInputRef}
+            type="file" 
+            accept="image/*" 
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          {uploadedFile ? (
+            <div className="border-2 border-dashed border-primary-300 dark:border-primary-600 rounded-lg p-8 text-center">
               <div className="flex flex-col items-center gap-3">
                 {uploadedFile.type.includes('pdf') ? (
                   <FileText className="w-16 h-16 text-primary-600 dark:text-primary-400" />
@@ -282,33 +350,55 @@ export const MenuEditor = () => {
                   <FileImage className="w-16 h-16 text-primary-600 dark:text-primary-400" />
                 )}
                 <div>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{uploadedFile.name}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{uploadedFile.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {(uploadedFile.size / 1024).toFixed(2)} KB
                   </p>
                 </div>
                 <Button 
                   size="sm" 
-                  variant="outline" 
-                  onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
+                  variant="outline"
+                  onClick={() => setUploadedFile(null)}
                 >
                   <X className="w-4 h-4 mr-2" /> Remove
                 </Button>
               </div>
-            ) : (
-              <>
-                <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-700 dark:text-gray-300 font-semibold mb-2">Click to upload menu</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Supports: JPG, PNG, PDF (Max 10MB)
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Gallery Upload */}
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all"
+              >
+                <Upload className="w-10 h-10 text-primary-600 dark:text-primary-400 mx-auto mb-3" />
+                <p className="text-gray-900 dark:text-gray-100 font-semibold mb-1">Upload from Gallery</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Choose image or PDF
                 </p>
-              </>
-            )}
-          </div>
+              </div>
+
+              {/* Camera Capture */}
+              <div 
+                onClick={() => cameraInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all"
+              >
+                <Camera className="w-10 h-10 text-primary-600 dark:text-primary-400 mx-auto mb-3" />
+                <p className="text-gray-900 dark:text-gray-100 font-semibold mb-1">Take Photo</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Use camera directly
+                </p>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+            Supports: JPEG, PNG, WEBP, GIF, BMP, TIFF, HEIC, PDF (Max 10MB)
+          </p>
 
           <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">
             <p className="text-xs text-yellow-800 dark:text-yellow-200">
-              💡 <strong>Tip:</strong> For best OCR results, ensure the menu text is clear, well-lit, and not skewed. After extraction, review and edit items before publishing.
+              💡 <strong>Tip:</strong> For best results, use clear, well-lit photos. AI Vision works great even with fancy fonts and complex layouts. Review extracted items before saving.
             </p>
           </div>
         </div>
@@ -356,14 +446,37 @@ export const MenuEditor = () => {
                   onChange={(e) => handleUpdateExtractedItem(index, 'name', e.target.value)}
                   required
                 />
-                <Input
-                  label="Price"
-                  type="number"
-                  step="0.01"
-                  value={item.price}
-                  onChange={(e) => handleUpdateExtractedItem(index, 'price', parseFloat(e.target.value) || 0)}
-                  required
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    label="Price"
+                    type="number"
+                    step="0.01"
+                    value={item.price}
+                    onChange={(e) => handleUpdateExtractedItem(index, 'price', parseFloat(e.target.value) || 0)}
+                    required
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Currency
+                    </label>
+                    <select
+                      value={item.currency || 'INR'}
+                      onChange={(e) => handleUpdateExtractedItem(index, 'currency', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="INR">₹ INR</option>
+                      <option value="USD">$ USD</option>
+                      <option value="EUR">€ EUR</option>
+                      <option value="GBP">£ GBP</option>
+                      <option value="AED">د.إ AED</option>
+                      <option value="SAR">﷼ SAR</option>
+                      <option value="JPY">¥ JPY</option>
+                      <option value="CNY">¥ CNY</option>
+                      <option value="AUD">$ AUD</option>
+                      <option value="CAD">$ CAD</option>
+                    </select>
+                  </div>
+                </div>
                 <Input
                   label="Category"
                   value={item.category}

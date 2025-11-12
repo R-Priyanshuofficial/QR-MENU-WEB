@@ -5,6 +5,7 @@ import {
   QrCode,
   Menu,
   BarChart3,
+  Receipt,
   LogOut,
 } from 'lucide-react'
 import { useAuth } from '@shared/contexts/AuthContext'
@@ -12,6 +13,7 @@ import { useAuth } from '@shared/contexts/AuthContext'
 const navItems = [
   { to: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/owner/orders', icon: ShoppingBag, label: 'Orders' },
+  { to: '/owner/billing', icon: Receipt, label: 'Billing' },
   { to: '/owner/menu', icon: Menu, label: 'Menu Editor' },
   { to: '/owner/qr', icon: QrCode, label: 'QR Codes' },
   { to: '/owner/analytics', icon: BarChart3, label: 'Analytics' },

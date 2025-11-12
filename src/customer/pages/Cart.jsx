@@ -11,6 +11,7 @@ import { isValidName, isValidPhone } from '@shared/utils/validators'
 import { ordersAPI } from '@shared/api/endpoints'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
+import { registerPushSubscription } from '@shared/utils/pushNotifications'
 
 export const Cart = () => {
   const { menuSlug, token } = useParams()
@@ -62,9 +63,10 @@ export const Cart = () => {
       }
 
       const response = await ordersAPI.createOrder(orderData)
-      toast.success('Order placed successfully!')
+      try { await registerPushSubscription({ phone: customerPhone }) } catch {}
       clearCart()
-      navigate(`/m/${menuSlug}/q/${token}/order/${response.data.orderId}`)
+      // Navigate to success page with animation
+      navigate(`/m/${menuSlug}/q/${token}/success/${response.data.orderId}`)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to place order')
     } finally {
@@ -91,32 +93,39 @@ export const Cart = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <motion.h1
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Header Section */}
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6"
+        className="text-center mb-8"
       >
-        Checkout
-      </motion.h1>
+        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent mb-2">
+          Checkout
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">Complete your order details</p>
+      </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Left Column - Cart Items */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Left Column - Customer Details & Order Items */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          className="md:col-span-2 space-y-4"
+          className="space-y-6"
         >
           {/* Customer Details */}
-          <Card>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Customer Details
+          <Card className="border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-lg">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-6 rounded-t-xl">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <User className="w-6 h-6" />
+                Your Details
               </h2>
+            </div>
+            <div className="p-6">
               <div className="space-y-4">
                 <Input
-                  label="Name"
+                  label="Full Name"
                   placeholder="Enter your name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
@@ -126,7 +135,7 @@ export const Cart = () => {
                 />
                 <Input
                   label="Phone Number"
-                  placeholder="Enter your phone number"
+                  placeholder="10-digit phone number"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   error={errors.phone}
@@ -139,41 +148,44 @@ export const Cart = () => {
           </Card>
 
           {/* Order Items */}
-          <Card>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Order Summary
+          <Card className="border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-lg">
+            <div className="bg-gradient-to-r from-orange-500 to-pink-500 p-6 rounded-t-xl">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <ShoppingBag className="w-6 h-6" />
+                Your Order ({items.length} {items.length === 1 ? 'item' : 'items'})
               </h2>
-              <div className="space-y-3">
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-2 border-purple-100 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all"
                   >
                     {item.image && (
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-20 h-20 object-cover rounded-xl shadow-md"
                       />
                     )}
                     <div className="flex-1">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">{item.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {formatCurrency(item.price)} × {item.quantity}
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">{item.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span className="font-semibold">{formatCurrency(item.price, item.currency)}</span>
+                        <span>×</span>
+                        <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{item.quantity}</span>
+                      </div>
+                      <p className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        {formatCurrency(item.price * item.quantity, item.currency)}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">
-                        {formatCurrency(item.price * item.quantity)}
-                      </p>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-500 hover:text-red-700 text-sm mt-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -181,54 +193,60 @@ export const Cart = () => {
           </Card>
         </motion.div>
 
-        {/* Right Column - Order Summary */}
+        {/* Right Column - Bill Summary */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="md:col-span-1"
         >
-          <Card className="sticky top-20">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <Card className="sticky top-20 border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-xl">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 rounded-t-xl">
+              <h2 className="text-2xl font-bold text-white">
                 Bill Summary
               </h2>
-
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(getTotalAmount())}</span>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(getTotalAmount())}</span>
                 </div>
-                <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                  <span>Taxes & Fees</span>
-                  <span>Included</span>
+                <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-600 dark:text-gray-400">Taxes & Fees</span>
+                  <span className="text-lg font-semibold text-green-600 dark:text-green-400">Included</span>
                 </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-gray-100">
-                    <span>Total</span>
-                    <span className="text-primary-600 dark:text-primary-400">
+                <div className="pt-4 pb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-gray-900 dark:text-white">Total Amount</span>
+                    <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                       {formatCurrency(getTotalAmount())}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  💰 <strong>Cash Payment</strong>
-                  <br />
-                  Pay when your order is ready
-                </p>
+              <div className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl p-5 mb-6 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <p className="text-white font-bold text-lg mb-1">Cash Payment</p>
+                    <p className="text-white/90 text-sm">Pay when your order is ready at the counter</p>
+                  </div>
+                </div>
               </div>
 
               <Button
                 size="lg"
-                className="w-full"
+                className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white font-bold text-lg py-4 shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
                 onClick={handlePlaceOrder}
                 loading={loading}
               >
-                Place Order
+                Place Order Now
               </Button>
+              
+              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+                By placing order, you agree to our terms & conditions
+              </p>
             </div>
           </Card>
         </motion.div>

@@ -5,9 +5,25 @@
  * @returns {string} Formatted currency string
  */
 export const formatCurrency = (amount, currency = 'INR') => {
-  return new Intl.NumberFormat('en-IN', {
+  // Map currency to appropriate locale
+  const localeMap = {
+    'USD': 'en-US',
+    'EUR': 'en-GB',
+    'GBP': 'en-GB',
+    'INR': 'en-IN',
+    'AED': 'ar-AE',
+    'SAR': 'ar-SA',
+    'JPY': 'ja-JP',
+    'CNY': 'zh-CN',
+    'AUD': 'en-AU',
+    'CAD': 'en-CA',
+  }
+  
+  const locale = localeMap[currency?.toUpperCase()] || 'en-IN'
+  
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: currency,
+    currency: currency || 'INR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount)

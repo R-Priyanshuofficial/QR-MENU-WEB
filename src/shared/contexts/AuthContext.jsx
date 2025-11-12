@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authAPI } from '../api/endpoints'
+import { registerPushSubscription } from '../utils/pushNotifications'
 import toast from 'react-hot-toast'
 
 const AuthContext = createContext(null)
@@ -29,11 +30,15 @@ export const AuthProvider = ({ children }) => {
           }
           setUser(mockUser)
           setIsAuthenticated(true)
+          // Ensure push subscription is registered for owner
+          try { await registerPushSubscription({ userId: mockUser.id }) } catch {}
         } else {
           // Fetch user from actual API
           const response = await authAPI.getMe()
           setUser(response.data.user)
           setIsAuthenticated(true)
+          // Ensure push subscription is registered for owner
+          try { await registerPushSubscription({ userId: response.data.user.id || response.data.user._id }) } catch {}
         }
       }
     } catch (error) {
@@ -65,6 +70,8 @@ export const AuthProvider = ({ children }) => {
       
       setUser(response.data.user)
       setIsAuthenticated(true)
+      // Register push subscription for owner
+      try { await registerPushSubscription({ userId: response.data.user.id || response.data.user._id }) } catch {}
       toast.success('Login successful!')
       return { success: true }
     } catch (error) {
@@ -95,6 +102,8 @@ export const AuthProvider = ({ children }) => {
           
           setUser(mockUser)
           setIsAuthenticated(true)
+          // Register push subscription for owner (demo)
+          try { await registerPushSubscription({ userId: mockUser.id }) } catch {}
           toast.success('Login successful! (Demo mode - backend not connected)')
           return { success: true }
         }
@@ -146,6 +155,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    setUser,
     loading,
     isAuthenticated,
     login,

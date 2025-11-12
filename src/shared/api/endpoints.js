@@ -20,13 +20,15 @@ export const menuAPI = {
   addItem: (itemData) => api.post('/menu/items', itemData),
   updateItem: (itemId, itemData) => api.put(`/menu/items/${itemId}`, itemData),
   deleteItem: (itemId) => api.delete(`/menu/items/${itemId}`),
+  deleteAllItems: () => api.delete('/menu/items'),
 }
 
 // Orders endpoints
 export const ordersAPI = {
   createOrder: (orderData) => api.post('/orders', orderData),
   getOrder: (orderId) => api.get(`/orders/${orderId}`),
-  getOwnerOrders: (status) => api.get('/orders/owner', { params: { status } }),
+  getCustomerOrders: (phone) => api.get(`/orders/customer/${phone}`),
+  getOwnerOrders: (status) => api.get('/orders/owner/list', { params: { status } }),
   updateOrderStatus: (orderId, status) => api.put(`/orders/${orderId}/status`, { status }),
   markOrderReady: (orderId) => api.put(`/orders/${orderId}/ready`),
   markOrderCompleted: (orderId) => api.put(`/orders/${orderId}/complete`),

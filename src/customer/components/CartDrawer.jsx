@@ -18,115 +18,93 @@ export const CartDrawer = () => {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Solid */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className="fixed inset-0 bg-black/60 z-40"
         onClick={closeCart}
       />
 
-      {/* Drawer */}
+      {/* Drawer - Solid Background */}
       <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-xl z-50 flex flex-col"
+        className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-950 shadow-2xl z-50 flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Your Cart</h2>
-            <span className="bg-primary-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-              {getTotalItems()}
-            </span>
-          </div>
+        <div className="flex items-center justify-between p-6 border-b-2 border-purple-100 dark:border-purple-900/30 bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg">
+          <h2 className="text-2xl font-bold">Cart ({getTotalItems()})</h2>
           <button
             onClick={closeCart}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center hover:scale-110 transition-all backdrop-blur-sm"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-6">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <ShoppingBag className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 text-lg">Your cart is empty</p>
-              <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                Add some delicious items to get started!
-              </p>
+              <ShoppingBag className="w-20 h-20 text-gray-200 dark:text-gray-800 mb-4" />
+              <p className="text-gray-400 dark:text-gray-600">Your cart is empty</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <AnimatePresence>
                 {items.map((item) => (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="bg-white dark:bg-gray-900 rounded-2xl p-4 border-2 border-purple-100 dark:border-purple-900/30 shadow-sm"
                   >
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       {item.image && (
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-20 h-20 object-cover rounded-lg"
+                          className="w-16 h-16 object-cover rounded-xl"
                         />
                       )}
 
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                           {item.name}
                         </h3>
-                        <p className="text-sm text-primary-600 dark:text-primary-400 font-semibold mb-2">
-                          {formatCurrency(item.price)}
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">
+                          {formatCurrency(item.price, item.currency)}
                         </p>
 
-                        <div className="flex items-center justify-between">
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="w-7 h-7 rounded-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-sm font-semibold w-6 text-center text-gray-900 dark:text-gray-100">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="w-7 h-7 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {/* Delete Button */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="text-base font-semibold w-8 text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="w-8 h-8 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => removeItem(item.id)}
-                            className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
+                            className="ml-auto text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Item Total */}
-                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-300">Subtotal</span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {formatCurrency(item.price * item.quantity)}
-                      </span>
                     </div>
                   </motion.div>
                 ))}
@@ -137,26 +115,20 @@ export const CartDrawer = () => {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900/50">
-            <div className="mb-4">
-              <div className="flex justify-between text-lg font-semibold mb-2">
-                <span className="text-gray-900 dark:text-gray-100">Total</span>
-                <span className="text-primary-600 dark:text-primary-400">
-                  {formatCurrency(getTotalAmount())}
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Inclusive of all taxes
-              </p>
+          <div className="border-t-2 border-purple-100 dark:border-purple-900/30 p-6 bg-gray-50 dark:bg-gray-900">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-lg text-gray-600 dark:text-gray-400">Total</span>
+              <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                {formatCurrency(getTotalAmount())}
+              </span>
             </div>
 
-            <Button
-              className="w-full"
-              size="lg"
+            <button
               onClick={handleCheckout}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white font-bold hover:scale-105 transition-all shadow-xl hover:shadow-2xl"
             >
               Proceed to Checkout
-            </Button>
+            </button>
           </div>
         )}
       </motion.div>

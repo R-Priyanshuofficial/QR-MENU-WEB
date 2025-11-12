@@ -1,9 +1,23 @@
 import axios from 'axios'
 
+// Build adaptive base URL so mobile devices use the same LAN host
+const buildBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL
+  const { protocol, hostname } = window.location
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
+
+  // If env not set, or env points to localhost but app is opened from a LAN IP, use current host
+  if (!envUrl || (!isLocalHost && envUrl.includes('localhost'))) {
+    const hostBase = `${protocol}//${hostname}:5000`
+    return `${hostBase}/api`
+  }
+  return envUrl
+}
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  baseURL: buildBaseUrl(),
+  timeout: 60000, // 60 seconds - allows time for AI Vision processing
   headers: {
     'Content-Type': 'application/json',
   },
